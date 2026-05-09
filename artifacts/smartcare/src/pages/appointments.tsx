@@ -39,6 +39,7 @@ import {
   AlertCircle,
   Stethoscope,
   StickyNote,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -106,6 +107,13 @@ export default function AppointmentsPage() {
     notes: "",
   });
 
+  const [adminPatientSearch, setAdminPatientSearch] = useState("");
+  const [adminDoctorSearch, setAdminDoctorSearch] = useState("");
+  const [adminSelectedPatient, setAdminSelectedPatient] = useState<any>(null);
+  const [adminSelectedDoctor, setAdminSelectedDoctor] = useState<any>(null);
+  const [adminSelectedSlot, setAdminSelectedSlot] = useState<any>(null);
+  const [adminSelectedDate, setAdminSelectedDate] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
   // Doctor notes viewer
   const [viewingAppointment, setViewingAppointment] = useState<any>(null);
 
@@ -151,6 +159,31 @@ export default function AppointmentsPage() {
     enabled: isPatient && !!selectedDoctorId,
   });
 
+  const { data: allPatients } = useQuery({
+    queryKey: ["/api/patients"],
+    queryFn: async () => {
+      const res = await fetch("/api/patients", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load patients");
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: adminDoctorSlots, isLoading: adminSlotsLoading } = useQuery({
+    queryKey: ["/api/clinic-reservations", adminSelectedDoctor?.doctorId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/clinic-reservations?doctorId=${adminSelectedDoctor.doctorId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) throw new Error("Failed to load schedule");
+      return res.json() as Promise<any[]>;
+    },
+    enabled: isAdmin && !!adminSelectedDoctor?.doctorId,
+  });
+
   // When doctor changes, reset slot/date selection
   useEffect(() => {
     setSelectedSlot(null);
@@ -186,6 +219,13 @@ export default function AppointmentsPage() {
     setSelectedDate("");
     setNotes("");
     setAdminForm({ patientId: "", doctorId: "", dateTime: "", notes: "" });
+    setAdminPatientSearch("");
+    setAdminDoctorSearch("");
+    setAdminSelectedPatient(null);
+    setAdminSelectedDoctor(null);
+    setAdminSelectedSlot(null);
+    setAdminSelectedDate("");
+    setAdminNotes("");
     setError(null);
   }
 
@@ -223,25 +263,38 @@ export default function AppointmentsPage() {
   }
 
   function handleAdminBook() {
-    if (!adminForm.patientId) {
-      setError("Patient ID is required");
+    if (!adminSelectedPatient) {
+      setError("Please select a patient");
       return;
     }
-    if (!adminForm.doctorId) {
+    if (!adminSelectedDoctor) {
       setError("Please select a doctor");
       return;
     }
-    if (!adminForm.dateTime) {
-      setError("Date & time is required");
+    if (!adminSelectedSlot) {
+      setError("Please select a time slot");
+      return;
+    }
+    if (!adminSelectedDate) {
+      setError("Please select a date");
+      return;
+    }
+    if (!isDateOnDay(adminSelectedDate, adminSelectedSlot.day)) {
+      setError(
+        `The selected date must be a ${adminSelectedSlot.day.charAt(0) + adminSelectedSlot.day.slice(1).toLowerCase()}`,
+      );
       return;
     }
     setError(null);
+    const dateTime = new Date(
+      `${adminSelectedDate}T${adminSelectedSlot.startHour}:00`,
+    ).toISOString();
     createMutation.mutate({
       data: {
-        patientId: Number(adminForm.patientId),
-        doctorId: Number(adminForm.doctorId),
-        dateTime: new Date(adminForm.dateTime).toISOString(),
-        notes: adminForm.notes || undefined,
+        patientId: Number(adminSelectedPatient.patientId),
+        doctorId: Number(adminSelectedDoctor.doctorId),
+        dateTime,
+        notes: adminNotes || undefined,
       } as any,
     });
   }
@@ -275,6 +328,33 @@ export default function AppointmentsPage() {
   const availableDays = DAY_ORDER.filter(
     (d) => (slotsByDay[d] ?? []).length > 0,
   );
+
+  const adminSlotsByDay: Record<string, any[]> = {};
+  (adminDoctorSlots ?? []).forEach((s: any) => {
+    if (!adminSlotsByDay[s.day]) adminSlotsByDay[s.day] = [];
+    adminSlotsByDay[s.day].push(s);
+  });
+  const adminAvailableDays = DAY_ORDER.filter(
+    (d) => (adminSlotsByDay[d] ?? []).length > 0,
+  );
+
+  const filteredPatients = (allPatients ?? []).filter((p: any) => {
+    const q = adminPatientSearch.toLowerCase();
+    return (
+      !q ||
+      p.name?.toLowerCase().includes(q) ||
+      p.email?.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredDoctors = (doctors ?? []).filter((d: any) => {
+    const q = adminDoctorSearch.toLowerCase();
+    return (
+      !q ||
+      d.name?.toLowerCase().includes(q) ||
+      d.email?.toLowerCase().includes(q)
+    );
+  });
 
   const colSpan = isDoctor ? 5 : isPatient ? 5 : 6;
 
@@ -696,67 +776,321 @@ export default function AppointmentsPage() {
             {/* ── ADMIN BOOKING FLOW ── */}
             {isAdmin && (
               <>
+                {/* Step 1: Search & select patient */}
                 <div className="space-y-1.5">
                   <Label>
-                    Patient ID <span className="text-destructive">*</span>
+                    Patient <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    placeholder="Enter patient ID..."
-                    value={adminForm.patientId}
-                    onChange={(e) =>
-                      setAdminForm((f) => ({ ...f, patientId: e.target.value }))
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Find the patient ID from the Patients page.
-                  </p>
+                  {adminSelectedPatient ? (
+                    <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {adminSelectedPatient.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {adminSelectedPatient.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-muted-foreground"
+                        onClick={() => {
+                          setAdminSelectedPatient(null);
+                          setAdminPatientSearch("");
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search by name or email..."
+                          value={adminPatientSearch}
+                          onChange={(e) =>
+                            setAdminPatientSearch(e.target.value)
+                          }
+                          className="pl-9"
+                        />
+                      </div>
+                      {adminPatientSearch && (
+                        <div className="rounded-lg border divide-y max-h-40 overflow-y-auto">
+                          {filteredPatients.length === 0 && (
+                            <p className="p-3 text-sm text-muted-foreground text-center">
+                              No patients found
+                            </p>
+                          )}
+                          {filteredPatients.slice(0, 8).map((p: any) => (
+                            <button
+                              key={p.patientId}
+                              type="button"
+                              className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                              onClick={() => {
+                                setAdminSelectedPatient(p);
+                                setAdminPatientSearch("");
+                              }}
+                            >
+                              <p className="text-sm font-medium">{p.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {p.email}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {/* Step 2: Search & select doctor */}
                 <div className="space-y-1.5">
                   <Label>
                     Doctor <span className="text-destructive">*</span>
                   </Label>
-                  <Select
-                    value={adminForm.doctorId}
-                    onValueChange={(v) =>
-                      setAdminForm((f) => ({ ...f, doctorId: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select doctor..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(doctors ?? []).map((d: any) => (
-                        <SelectItem key={d.doctorId} value={String(d.doctorId)}>
-                          Dr. {d.name} — {d.specialty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {adminSelectedDoctor ? (
+                    <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Dr. {adminSelectedDoctor.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {adminSelectedDoctor.specialty} ·{" "}
+                          {adminSelectedDoctor.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-muted-foreground"
+                        onClick={() => {
+                          setAdminSelectedDoctor(null);
+                          setAdminDoctorSearch("");
+                          setAdminSelectedSlot(null);
+                          setAdminSelectedDate("");
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search by name or email..."
+                          value={adminDoctorSearch}
+                          onChange={(e) => setAdminDoctorSearch(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      {adminDoctorSearch && (
+                        <div className="rounded-lg border divide-y max-h-40 overflow-y-auto">
+                          {filteredDoctors.length === 0 && (
+                            <p className="p-3 text-sm text-muted-foreground text-center">
+                              No doctors found
+                            </p>
+                          )}
+                          {filteredDoctors.slice(0, 8).map((d: any) => (
+                            <button
+                              key={d.doctorId}
+                              type="button"
+                              className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                              onClick={() => {
+                                setAdminSelectedDoctor(d);
+                                setAdminDoctorSearch("");
+                                setAdminSelectedSlot(null);
+                                setAdminSelectedDate("");
+                              }}
+                            >
+                              <p className="text-sm font-medium">
+                                Dr. {d.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {d.specialty} · {d.email}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <Label>
-                    Date & Time <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    type="datetime-local"
-                    value={adminForm.dateTime}
-                    onChange={(e) =>
-                      setAdminForm((f) => ({ ...f, dateTime: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Notes (optional)</Label>
-                  <Textarea
-                    value={adminForm.notes}
-                    onChange={(e) =>
-                      setAdminForm((f) => ({ ...f, notes: e.target.value }))
-                    }
-                    placeholder="Reason for visit..."
-                    rows={3}
-                  />
-                </div>
+
+                {/* Step 3: Time slots (mirrors patient flow) */}
+                {adminSelectedDoctor && (
+                  <div className="space-y-2">
+                    <Label>
+                      Available Time Slots{" "}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    {adminSlotsLoading && (
+                      <div className="space-y-2">
+                        <Skeleton className="h-14 w-full" />
+                        <Skeleton className="h-14 w-full" />
+                      </div>
+                    )}
+                    {!adminSlotsLoading && adminAvailableDays.length === 0 && (
+                      <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                        This doctor has no scheduled time slots yet.
+                      </div>
+                    )}
+                    {!adminSlotsLoading && adminAvailableDays.length > 0 && (
+                      <div className="space-y-2">
+                        {adminAvailableDays.map((day) => (
+                          <div key={day}>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                              {day.charAt(0) + day.slice(1).toLowerCase()}s
+                            </p>
+                            <div className="space-y-1.5">
+                              {adminSlotsByDay[day].map((slot: any) => {
+                                const isSelected =
+                                  adminSelectedSlot?.reservationId ===
+                                  slot.reservationId;
+                                return (
+                                  <button
+                                    key={slot.reservationId}
+                                    type="button"
+                                    onClick={() => {
+                                      setAdminSelectedSlot(slot);
+                                      setAdminSelectedDate(
+                                        getNextDateForDay(slot.day),
+                                      );
+                                    }}
+                                    className={`w-full text-left rounded-lg border px-4 py-3 transition-all ${
+                                      isSelected
+                                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                        : "border-border hover:border-primary/50 hover:bg-muted/40"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <Stethoscope className="w-3.5 h-3.5 text-muted-foreground" />
+                                        <span className="text-sm font-medium">
+                                          {slot.clinicType}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {slot.startHour} – {slot.endHour}
+                                      </div>
+                                    </div>
+                                    {isSelected && (
+                                      <div className="mt-1 flex items-center gap-1 text-xs text-primary font-medium">
+                                        <CheckCircle className="w-3 h-3" />{" "}
+                                        Selected
+                                      </div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 4: Date picker */}
+                {adminSelectedSlot && (
+                  <div className="space-y-1.5">
+                    <Label>
+                      Appointment Date{" "}
+                      <span className="text-destructive">*</span>
+                      <span className="ml-1 text-xs text-muted-foreground font-normal">
+                        (must be a{" "}
+                        {adminSelectedSlot.day.charAt(0) +
+                          adminSelectedSlot.day.slice(1).toLowerCase()}
+                        )
+                      </span>
+                    </Label>
+                    <Input
+                      type="date"
+                      value={adminSelectedDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setAdminSelectedDate(e.target.value)}
+                    />
+                    {adminSelectedDate &&
+                      !isDateOnDay(
+                        adminSelectedDate,
+                        adminSelectedSlot.day,
+                      ) && (
+                        <p className="text-xs text-destructive flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Please pick a{" "}
+                          {adminSelectedSlot.day.charAt(0) +
+                            adminSelectedSlot.day.slice(1).toLowerCase()}
+                        </p>
+                      )}
+                    {adminSelectedDate &&
+                      isDateOnDay(adminSelectedDate, adminSelectedSlot.day) && (
+                        <p className="text-xs text-emerald-600 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Appointment at {adminSelectedSlot.startHour} on{" "}
+                          {new Date(
+                            adminSelectedDate + "T00:00:00",
+                          ).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                      )}
+                  </div>
+                )}
+
+                {/* Notes */}
+                {adminSelectedSlot && (
+                  <div className="space-y-1.5">
+                    <Label>Notes (optional)</Label>
+                    <Textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      placeholder="Reason for visit..."
+                      rows={3}
+                    />
+                  </div>
+                )}
+
+                {/* Booking summary */}
+                {adminSelectedPatient &&
+                  adminSelectedDoctor &&
+                  adminSelectedSlot &&
+                  adminSelectedDate &&
+                  isDateOnDay(adminSelectedDate, adminSelectedSlot.day) && (
+                    <div className="rounded-lg bg-muted/50 border p-3 text-sm space-y-1">
+                      <p className="font-semibold text-foreground">
+                        Booking summary
+                      </p>
+                      <p className="text-muted-foreground">
+                        Patient: {adminSelectedPatient.name}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Doctor: Dr. {adminSelectedDoctor.name} —{" "}
+                        {adminSelectedDoctor.specialty}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Date:{" "}
+                        {new Date(
+                          adminSelectedDate + "T00:00:00",
+                        ).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Time: {adminSelectedSlot.startHour}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Clinic: {adminSelectedSlot.clinicType}
+                      </p>
+                    </div>
+                  )}
               </>
             )}
           </div>
@@ -788,7 +1122,14 @@ export default function AppointmentsPage() {
             {isAdmin && (
               <Button
                 onClick={handleAdminBook}
-                disabled={createMutation.isPending}
+                disabled={
+                  createMutation.isPending ||
+                  !adminSelectedPatient ||
+                  !adminSelectedDoctor ||
+                  !adminSelectedSlot ||
+                  !adminSelectedDate ||
+                  !isDateOnDay(adminSelectedDate, adminSelectedSlot?.day)
+                }
               >
                 {createMutation.isPending ? "Booking..." : "Book Appointment"}
               </Button>
