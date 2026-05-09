@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, DollarSign, TrendingUp, Receipt } from "lucide-react";
+import { CreditCard, DollarSign, TrendingUp, Receipt, Percent } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 
@@ -31,7 +31,6 @@ export default function BillingPage() {
   const isDoctor = role === "DOCTOR";
   const isAdmin = role === "ADMIN";
 
-  // Derive view mode from path or role
   const mode = useMemo(() => {
     if (location.startsWith("/billing/profit")) return "profit";
     if (location.startsWith("/billing/revenue")) return "revenue";
@@ -47,7 +46,6 @@ export default function BillingPage() {
   const [payForm, setPayForm] = useState({ amount: "", method: "CARD" });
   const qc = useQueryClient();
 
-  // Fetch current user's profile to get role-specific IDs
   const { data: doctorMe } = useGetDoctorMe({
     query: { queryKey: ["doctors", "me"], enabled: isDoctor },
   });
@@ -56,9 +54,7 @@ export default function BillingPage() {
   const { data: patientMe } = useQuery({
     queryKey: ["patients", "me"],
     queryFn: async () => {
-      const res = await fetch("/api/patients/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/patients/me", { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Failed to load patient profile");
       return res.json();
     },
@@ -67,7 +63,19 @@ export default function BillingPage() {
   });
   const patientId = isPatient ? (patientMe as any)?.patientId : undefined;
 
-  // Build params depending on role
+  // Fetch platform settings to show fee context
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return { feePercent: 10 };
+      return res.json() as Promise<{ feePercent: number }>;
+    },
+    enabled: !!token && (isAdmin || isDoctor),
+    staleTime: 60000,
+  });
+  const feePercent = Number(settings?.feePercent ?? 10);
+
   const invoiceParams = useMemo(() => {
     const p: Record<string, any> = {};
     if (statusFilter) p.status = statusFilter;
@@ -76,7 +84,6 @@ export default function BillingPage() {
     return p;
   }, [mode, statusFilter, patientId, doctorId]);
 
-  // Only fetch when we have the required ID
   const canFetch =
     mode === "revenue" ||
     (mode === "bills" && !!patientId) ||
@@ -105,54 +112,67 @@ export default function BillingPage() {
 
   const invoiceList = (invoices ?? []) as any[];
 
-  const totalPaid = invoiceList
-    .filter((i) => i.status === "PAID")
-    .reduce((sum, i) => sum + Number(i.totalAmount), 0);
+  // ── Total amount (what patients paid)
+  const totalAll = invoiceList.reduce((sum, i) => sum + Number(i.totalAmount ?? 0), 0);
+  const totalPaid = invoiceList.filter(i => i.status === "PAID").reduce((sum, i) => sum + Number(i.totalAmount ?? 0), 0);
+  const totalPending = invoiceList.filter(i => i.status === "PENDING").reduce((sum, i) => sum + Number(i.totalAmount ?? 0), 0);
 
-  const totalPending = invoiceList
-    .filter((i) => i.status === "PENDING")
-    .reduce((sum, i) => sum + Number(i.totalAmount), 0);
+  // ── Net amount (what doctors actually receive after fee)
+  const totalNet = invoiceList.reduce((sum, i) => sum + Number(i.netAmount ?? 0), 0);
+  const paidNet = invoiceList.filter(i => i.status === "PAID").reduce((sum, i) => sum + Number(i.netAmount ?? 0), 0);
+  const pendingNet = invoiceList.filter(i => i.status === "PENDING").reduce((sum, i) => sum + Number(i.netAmount ?? 0), 0);
 
-  const totalAll = invoiceList
-    .reduce((sum, i) => sum + Number(i.totalAmount), 0);
+  // ── Platform fee (the site's cut)
+  const totalPlatformFee = invoiceList.reduce((sum, i) => sum + Number(i.platformFee ?? 0), 0);
+  const paidPlatformFee = invoiceList.filter(i => i.status === "PAID").reduce((sum, i) => sum + Number(i.platformFee ?? 0), 0);
 
-  // Summary card config per mode
+  const fmt = (n: number) => `$${n.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const summaryCards = useMemo(() => {
     if (mode === "bills") {
       return [
-        { label: "Total Billed", value: `$${totalAll.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: Receipt, color: "bg-blue-100 text-blue-600" },
-        { label: "Paid", value: `$${totalPaid.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "bg-green-100 text-green-600" },
-        { label: "Outstanding", value: `$${totalPending.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: CreditCard, color: "bg-amber-100 text-amber-600" },
+        { label: "Total Billed", value: fmt(totalAll), icon: Receipt, color: "bg-blue-100 text-blue-600" },
+        { label: "Paid", value: fmt(totalPaid), icon: DollarSign, color: "bg-green-100 text-green-600" },
+        { label: "Outstanding", value: fmt(totalPending), icon: CreditCard, color: "bg-amber-100 text-amber-600" },
       ];
     }
     if (mode === "profit") {
+      // Doctor sees their NET earnings (after fee deduction)
       return [
-        { label: "Total Earnings", value: `$${totalAll.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "bg-emerald-100 text-emerald-600" },
-        { label: "Collected", value: `$${totalPaid.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "bg-green-100 text-green-600" },
-        { label: "Awaiting Payment", value: `$${totalPending.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: CreditCard, color: "bg-amber-100 text-amber-600" },
+        { label: "Your Net Earnings", value: fmt(totalNet), sub: `After ${feePercent}% platform fee`, icon: TrendingUp, color: "bg-emerald-100 text-emerald-600" },
+        { label: "Collected", value: fmt(paidNet), sub: "From paid invoices", icon: DollarSign, color: "bg-green-100 text-green-600" },
+        { label: "Awaiting Payment", value: fmt(pendingNet), sub: "From pending invoices", icon: CreditCard, color: "bg-amber-100 text-amber-600" },
       ];
     }
-    // admin revenue
+    // Admin — revenue = all money, profit = platform's cut
     return [
-      { label: "Total Revenue", value: `$${totalAll.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "bg-emerald-100 text-emerald-600" },
-      { label: "Collected", value: `$${totalPaid.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "bg-green-100 text-green-600" },
-      { label: "Pending", value: `$${totalPending.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: CreditCard, color: "bg-amber-100 text-amber-600" },
+      { label: "Total Revenue", value: fmt(totalAll), sub: "All patient payments", icon: TrendingUp, color: "bg-blue-100 text-blue-600" },
+      { label: "Platform Profit", value: fmt(paidPlatformFee), sub: `${feePercent}% fee on collected`, icon: Percent, color: "bg-violet-100 text-violet-600" },
+      { label: "Pending", value: fmt(totalPending), sub: "Awaiting payment", icon: CreditCard, color: "bg-amber-100 text-amber-600" },
     ];
-  }, [mode, totalAll, totalPaid, totalPending]);
+  }, [mode, totalAll, totalPaid, totalPending, totalNet, paidNet, pendingNet, paidPlatformFee, totalPlatformFee, feePercent]);
 
   const pageTitle = mode === "profit" ? "Profit" : mode === "bills" ? "Bills" : "Billing & Revenue";
   const pageDesc =
     mode === "profit"
-      ? "Your earnings from completed appointments"
+      ? "Your net earnings from appointments after platform fee"
       : mode === "bills"
         ? "Your invoices and payment history"
-        : "All invoices and total revenue";
+        : "All patient payments and platform revenue";
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{pageTitle}</h1>
-        <p className="text-muted-foreground">{pageDesc}</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">{pageTitle}</h1>
+          <p className="text-muted-foreground">{pageDesc}</p>
+        </div>
+        {(isAdmin || isDoctor) && settings && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground bg-muted/60 border rounded-lg px-3 py-1.5">
+            <Percent className="w-3.5 h-3.5" />
+            <span>Platform fee: <strong className="text-foreground">{feePercent}%</strong></span>
+          </div>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -160,17 +180,40 @@ export default function BillingPage() {
         {summaryCards.map((card) => (
           <Card key={card.label}>
             <CardContent className="p-6 flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${card.color.split(" ")[0]}`}>
+              <div className={`p-3 rounded-xl shrink-0 ${card.color.split(" ")[0]}`}>
                 <card.icon className={`w-5 h-5 ${card.color.split(" ")[1]}`} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">{card.label}</p>
                 <p className="text-xl font-bold">{card.value}</p>
+                {"sub" in card && card.sub && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{card.sub}</p>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Doctor: Fee breakdown banner */}
+      {isDoctor && invoiceList.length > 0 && (
+        <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 px-5 py-3 text-sm">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div>
+              <span className="text-muted-foreground">Gross Billed: </span>
+              <span className="font-semibold">{fmt(totalAll)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Platform Fee ({feePercent}%): </span>
+              <span className="font-semibold text-red-600">-{fmt(totalPlatformFee)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Your Total: </span>
+              <span className="font-semibold text-emerald-600">{fmt(totalNet)}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status filter */}
       <div className="flex gap-2 flex-wrap">
@@ -198,27 +241,25 @@ export default function BillingPage() {
                   {!isDoctor && <th className="text-left p-4 font-medium">Doctor</th>}
                   <th className="text-left p-4 font-medium">Date</th>
                   <th className="text-right p-4 font-medium">Total</th>
-                  {isDoctor && <th className="text-right p-4 font-medium">Platform Fee</th>}
-                  {isDoctor && <th className="text-right p-4 font-medium">You Receive</th>}
-                  {isAdmin && <th className="text-right p-4 font-medium">Platform Fee</th>}
+                  {isDoctor && <th className="text-right p-4 font-medium text-red-600">Fee ({feePercent}%)</th>}
+                  {isDoctor && <th className="text-right p-4 font-medium text-emerald-600">You Receive</th>}
+                  {isAdmin && <th className="text-right p-4 font-medium text-violet-600">Platform Profit</th>}
                   <th className="text-left p-4 font-medium">Status</th>
                   {mode === "bills" && <th className="text-left p-4 font-medium">Action</th>}
                 </tr>
               </thead>
               <tbody>
                 {isLoading &&
-                  Array(5)
-                    .fill(0)
-                    .map((_, i) => (
-                      <tr key={i} className="border-b">
-                        <td colSpan={6} className="p-4">
-                          <Skeleton className="h-4 w-full" />
-                        </td>
-                      </tr>
-                    ))}
+                  Array(5).fill(0).map((_, i) => (
+                    <tr key={i} className="border-b">
+                      <td colSpan={8} className="p-4">
+                        <Skeleton className="h-4 w-full" />
+                      </td>
+                    </tr>
+                  ))}
                 {!isLoading && invoiceList.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
                       {mode === "bills"
                         ? "No bills yet. Bills are created automatically when your doctor issues a prescription."
                         : mode === "profit"
@@ -233,20 +274,20 @@ export default function BillingPage() {
                     {!isPatient && <td className="p-4 font-medium">{inv.patientName}</td>}
                     {!isDoctor && <td className="p-4 text-muted-foreground">{inv.doctorName}</td>}
                     <td className="p-4 text-muted-foreground">{inv.issueDate}</td>
-                    <td className="p-4 text-right font-semibold">${Number(inv.totalAmount).toFixed(2)}</td>
+                    <td className="p-4 text-right font-semibold">{fmt(Number(inv.totalAmount))}</td>
                     {isDoctor && (
                       <td className="p-4 text-right text-sm text-red-500">
-                        {inv.platformFee != null ? `-$${Number(inv.platformFee).toFixed(2)}` : "—"}
+                        {inv.platformFee != null ? `-${fmt(Number(inv.platformFee))}` : "—"}
                       </td>
                     )}
                     {isDoctor && (
                       <td className="p-4 text-right font-semibold text-emerald-600">
-                        {inv.netAmount != null ? `$${Number(inv.netAmount).toFixed(2)}` : "—"}
+                        {inv.netAmount != null ? fmt(Number(inv.netAmount)) : "—"}
                       </td>
                     )}
                     {isAdmin && (
-                      <td className="p-4 text-right text-sm text-primary font-medium">
-                        {inv.platformFee != null ? `$${Number(inv.platformFee).toFixed(2)}` : "—"}
+                      <td className="p-4 text-right text-sm text-violet-600 font-medium">
+                        {inv.platformFee != null ? fmt(Number(inv.platformFee)) : "—"}
                       </td>
                     )}
                     <td className="p-4">
@@ -271,6 +312,28 @@ export default function BillingPage() {
                   </tr>
                 ))}
               </tbody>
+
+              {/* Table footer totals */}
+              {!isLoading && invoiceList.length > 0 && (
+                <tfoot>
+                  <tr className="border-t bg-muted/20 font-semibold">
+                    <td className="p-4 text-muted-foreground text-xs uppercase tracking-wide" colSpan={isPatient ? 2 : isDoctor ? 3 : 3}>
+                      Totals
+                    </td>
+                    <td className="p-4 text-right">{fmt(totalAll)}</td>
+                    {isDoctor && (
+                      <td className="p-4 text-right text-red-500">-{fmt(totalPlatformFee)}</td>
+                    )}
+                    {isDoctor && (
+                      <td className="p-4 text-right text-emerald-600">{fmt(totalNet)}</td>
+                    )}
+                    {isAdmin && (
+                      <td className="p-4 text-right text-violet-600">{fmt(totalPlatformFee)}</td>
+                    )}
+                    <td className="p-4" colSpan={mode === "bills" ? 2 : 1} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </CardContent>
@@ -287,7 +350,7 @@ export default function BillingPage() {
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">Invoice #{selectedInvoice.invoiceId}</p>
                 <p className="font-semibold">{selectedInvoice.patientName}</p>
-                <p className="text-2xl font-bold mt-1">${Number(selectedInvoice.totalAmount).toFixed(2)}</p>
+                <p className="text-2xl font-bold mt-1">{fmt(Number(selectedInvoice.totalAmount))}</p>
               </div>
               <div className="space-y-2">
                 <Label>Amount</Label>
