@@ -62,6 +62,35 @@ export default function Layout({ children }: LayoutProps) {
   });
   const unreadCount = (notifications ?? []).filter((n: any) => !n.isRead).length;
 
+  // Fetch doctor's own ID — DOCTOR role only
+  const { data: doctorMe } = useQuery({
+    queryKey: ["/api/doctors/me", "layout-doctor"],
+    queryFn: async () => {
+      const res = await fetch("/api/doctors/me", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return null;
+      return res.json() as Promise<any>;
+    },
+    enabled: !!token && user?.role === "DOCTOR",
+    staleTime: 60000,
+  });
+  const doctorId = (doctorMe as any)?.doctorId;
+
+  // Fetch pending appointments count for doctor — polls every 30s
+  const { data: pendingAppointments } = useQuery({
+    queryKey: ["/api/appointments", "doctor-pending", doctorId],
+    queryFn: async () => {
+      const res = await fetch(`/api/appointments?doctorId=${doctorId}&status=PENDING`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return [];
+      return res.json() as Promise<any[]>;
+    },
+    enabled: !!token && user?.role === "DOCTOR" && !!doctorId,
+    refetchInterval: 30000,
+    staleTime: 20000,
+  });
+  const hasPendingAppointments = user?.role === "DOCTOR" && (pendingAppointments ?? []).length > 0;
+
   // Fetch patient profile to check completeness — PATIENT role only
   const { data: patientProfile } = useQuery({
     queryKey: ["/api/patients/me", "layout-check"],
@@ -134,6 +163,7 @@ export default function Layout({ children }: LayoutProps) {
             const active = location === href || location.startsWith(href + "/");
             const isNotifications = href === "/notifications";
             const isProfile = href === "/profile";
+            const isAppointments = href === "/appointments";
             return (
               <button
                 key={href}
@@ -151,6 +181,13 @@ export default function Layout({ children }: LayoutProps) {
                     active ? "bg-white/20 text-white" : "bg-red-500 text-white"
                   }`}>
                     {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+                {isAppointments && hasPendingAppointments && (
+                  <span className={`text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none ${
+                    active ? "bg-white/20 text-white" : "bg-red-500 text-white"
+                  }`}>
+                    {(pendingAppointments ?? []).length > 99 ? "99+" : (pendingAppointments ?? []).length}
                   </span>
                 )}
                 {isProfile && isProfileIncomplete && (
