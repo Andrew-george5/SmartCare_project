@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -46,7 +47,8 @@ public class AuthService {
     }
 
     @Transactional
-    public Map<String, Object> register(String name, String email, String password, String role, String phoneNumber) {
+    public Map<String, Object> register(String name, String email, String password, String role, String phoneNumber,
+                                        String gender, String dateOfBirth, String bloodType, String address) {
         if (userRepository.existsByEmail(email)) {
             throw new BadRequestException("Email already registered");
         }
@@ -73,10 +75,14 @@ public class AuthService {
         user = userRepository.save(user);
 
         if (roleEnum == RoleEnum.PATIENT) {
-            Patient patient = Patient.builder()
-                    .user(user)
-                    .build();
-            patientRepository.save(patient);
+            Patient.PatientBuilder pb = Patient.builder().user(user);
+            if (gender != null && !gender.isBlank()) pb.gender(gender);
+            if (dateOfBirth != null && !dateOfBirth.isBlank()) {
+                try { pb.dateOfBirth(LocalDate.parse(dateOfBirth)); } catch (Exception ignored) {}
+            }
+            if (bloodType != null && !bloodType.isBlank()) pb.bloodType(bloodType);
+            if (address != null && !address.isBlank()) pb.address(address);
+            patientRepository.save(pb.build());
         }
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId());

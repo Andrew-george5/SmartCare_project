@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard, Users, Stethoscope, Calendar, FileText,
-  Pill, CreditCard, Bell, LogOut, Menu, KeyRound, Building2, Wallet, TrendingUp, UserCircle, Settings2
+  Pill, CreditCard, Bell, LogOut, Menu, KeyRound, Building2, Wallet, TrendingUp, UserCircle, Settings2, AlertCircle
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
@@ -61,6 +61,24 @@ export default function Layout({ children }: LayoutProps) {
     staleTime: 20000,
   });
   const unreadCount = (notifications ?? []).filter((n: any) => !n.isRead).length;
+
+  // Fetch patient profile to check completeness — PATIENT role only
+  const { data: patientProfile } = useQuery({
+    queryKey: ["/api/patients/me", "layout-check"],
+    queryFn: async () => {
+      const res = await fetch("/api/patients/me", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return null;
+      return res.json() as Promise<any>;
+    },
+    enabled: !!token && user?.role === "PATIENT",
+    staleTime: 60000,
+  });
+
+  const isProfileIncomplete =
+    user?.role === "PATIENT" &&
+    patientProfile !== undefined &&
+    patientProfile !== null &&
+    (!patientProfile.gender || !patientProfile.dateOfBirth || !patientProfile.bloodType || !patientProfile.address);
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -115,6 +133,7 @@ export default function Layout({ children }: LayoutProps) {
           {filteredNav.map(({ label, icon: Icon, href }) => {
             const active = location === href || location.startsWith(href + "/");
             const isNotifications = href === "/notifications";
+            const isProfile = href === "/profile";
             return (
               <button
                 key={href}
@@ -133,6 +152,9 @@ export default function Layout({ children }: LayoutProps) {
                   }`}>
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
+                )}
+                {isProfile && isProfileIncomplete && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" title="Profile incomplete" />
                 )}
               </button>
             );
@@ -203,6 +225,29 @@ export default function Layout({ children }: LayoutProps) {
               </button>
             )}
           </header>
+
+          {/* Incomplete profile banner */}
+          {isProfileIncomplete && location !== "/profile" && (
+            <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center gap-3">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-800 flex-1">
+                Your profile is incomplete. Please enter the rest of your data in the{" "}
+                <button
+                  onClick={() => setLocation("/profile")}
+                  className="font-semibold underline underline-offset-2 hover:text-amber-900 transition-colors"
+                >
+                  My Profile
+                </button>{" "}
+                section.
+              </p>
+              <button
+                onClick={() => setLocation("/profile")}
+                className="text-xs font-medium text-amber-700 hover:text-amber-900 border border-amber-300 rounded px-2 py-1 hover:bg-amber-100 transition-colors shrink-0"
+              >
+                Complete now
+              </button>
+            </div>
+          )}
 
           <main className="flex-1 overflow-auto p-6">
             {children}

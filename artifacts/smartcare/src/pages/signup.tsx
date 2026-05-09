@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronDown, ChevronUp } from "lucide-react";
+
+const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -14,6 +19,13 @@ export default function SignupPage() {
   const [confirm, setConfirm] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState("");
+  const [showOptional, setShowOptional] = useState(false);
+
+  const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [bloodType, setBloodType] = useState("");
+  const [address, setAddress] = useState("");
+
   const { login } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -36,7 +48,19 @@ export default function SignupPage() {
       setError("Passwords do not match.");
       return;
     }
-    registerMutation.mutate({ data: { name, email, password, role: "PATIENT", phoneNumber } });
+    registerMutation.mutate({
+      data: {
+        name,
+        email,
+        password,
+        role: "PATIENT",
+        phoneNumber,
+        ...(gender ? { gender } : {}),
+        ...(dateOfBirth ? { dateOfBirth } : {}),
+        ...(bloodType ? { bloodType } : {}),
+        ...(address ? { address } : {}),
+      } as any,
+    });
   };
 
   return (
@@ -62,6 +86,7 @@ export default function SignupPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
+
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -82,6 +107,66 @@ export default function SignupPage() {
                 <Label htmlFor="confirm">Confirm Password</Label>
                 <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOptional(v => !v)}
+                className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors py-1 border-t pt-3"
+              >
+                <span className="font-medium">Additional Information <span className="text-xs font-normal">(optional — can be added later in My Profile)</span></span>
+                {showOptional ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {showOptional && (
+                <div className="space-y-4 pb-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select value={gender} onValueChange={setGender}>
+                        <SelectTrigger id="gender">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">Male</SelectItem>
+                          <SelectItem value="FEMALE">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dob">Date of Birth</Label>
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={dateOfBirth}
+                        onChange={(e) => setDateOfBirth(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="blood">Blood Type</Label>
+                      <Select value={bloodType} onValueChange={setBloodType}>
+                        <SelectTrigger id="blood">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BLOOD_TYPES.map(bt => (
+                            <SelectItem key={bt} value={bt}>{bt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        id="address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="123 Main St, City"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                 {registerMutation.isPending ? "Creating account..." : "Create account"}
               </Button>
