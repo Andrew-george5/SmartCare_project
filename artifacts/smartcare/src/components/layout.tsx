@@ -109,6 +109,24 @@ export default function Layout({ children }: LayoutProps) {
     patientProfile !== null &&
     (!patientProfile.gender || !patientProfile.dateOfBirth || !patientProfile.bloodType || !patientProfile.address);
 
+  const patientId = (patientProfile as any)?.patientId;
+
+  // Fetch pending bills count for patient — polls every 30s
+  const { data: pendingBills } = useQuery({
+    queryKey: ["/api/invoices", "patient-pending", patientId],
+    queryFn: async () => {
+      const res = await fetch(`/api/invoices?patientId=${patientId}&status=PENDING`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return [];
+      return res.json() as Promise<any[]>;
+    },
+    enabled: !!token && user?.role === "PATIENT" && !!patientId,
+    refetchInterval: 30000,
+    staleTime: 20000,
+  });
+  const hasPendingBills = user?.role === "PATIENT" && (pendingBills ?? []).length > 0;
+
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (pwForm.next !== pwForm.confirm) {
@@ -164,6 +182,7 @@ export default function Layout({ children }: LayoutProps) {
             const isNotifications = href === "/notifications";
             const isProfile = href === "/profile";
             const isAppointments = href === "/appointments";
+            const isBills = href === "/billing/bills";
             return (
               <button
                 key={href}
@@ -188,6 +207,13 @@ export default function Layout({ children }: LayoutProps) {
                     active ? "bg-white/20 text-white" : "bg-red-500 text-white"
                   }`}>
                     {(pendingAppointments ?? []).length > 99 ? "99+" : (pendingAppointments ?? []).length}
+                  </span>
+                )}
+                {isBills && hasPendingBills && (
+                  <span className={`text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none ${
+                    active ? "bg-white/20 text-white" : "bg-red-500 text-white"
+                  }`}>
+                    {(pendingBills ?? []).length > 99 ? "99+" : (pendingBills ?? []).length}
                   </span>
                 )}
                 {isProfile && isProfileIncomplete && (
