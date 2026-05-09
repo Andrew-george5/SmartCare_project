@@ -91,7 +91,7 @@ export default function PatientsPage() {
           </p>
         </div>
         {!isDoctor && (
-          <Button onClick={() => { setShowDialog(true); setError(null); }} className="gap-2">
+          <Button onClick={() => { setShowDialog(true); setError(null); setForm({ name: "", email: "", password: "patient123", dateOfBirth: "", gender: "MALE", address: "", bloodType: "", phoneNumber: "" }); }} className="gap-2">
             <Plus className="w-4 h-4" /> Add Patient
           </Button>
         )}
@@ -154,7 +154,7 @@ export default function PatientsPage() {
       </Card>
 
       {!isDoctor && (
-        <Dialog open={showDialog} onOpenChange={open => { setShowDialog(open); if (!open) setError(null); }}>
+        <Dialog open={showDialog} onOpenChange={open => { setShowDialog(open); if (!open) { setError(null); setForm({ name: "", email: "", password: "patient123", dateOfBirth: "", gender: "MALE", address: "", bloodType: "", phoneNumber: "" }); } }}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Add New Patient</DialogTitle>
