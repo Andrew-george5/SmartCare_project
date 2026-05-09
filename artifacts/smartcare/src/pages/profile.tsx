@@ -10,7 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { User, Heart, Phone, Mail, MapPin, CalendarDays, Droplets, Pencil, X, Check } from "lucide-react";
+import {
+  User, Heart, Phone, Mail, MapPin, CalendarDays, Droplets,
+  Pencil, X, Check, CircleAlert, CircleCheck, ChevronRight
+} from "lucide-react";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
@@ -49,6 +52,7 @@ export default function ProfilePage() {
     mutation: {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: ["/api/patients/me"] });
+        qc.invalidateQueries({ queryKey: ["/api/patients/me", "layout-check"] });
         setEditing(false);
         toast({ title: "Profile updated successfully" });
       },
@@ -88,6 +92,37 @@ export default function ProfilePage() {
     .toUpperCase()
     .slice(0, 2);
 
+  const completionFields = [
+    { key: "name", label: "Full Name", value: user?.name, icon: User },
+    { key: "email", label: "Email Address", value: user?.email, icon: Mail },
+    { key: "phoneNumber", label: "Phone Number", value: patient?.phoneNumber, icon: Phone },
+    { key: "gender", label: "Gender", value: patient?.gender, icon: User },
+    { key: "dateOfBirth", label: "Date of Birth", value: patient?.dateOfBirth, icon: CalendarDays },
+    { key: "bloodType", label: "Blood Type", value: patient?.bloodType, icon: Droplets },
+    { key: "address", label: "Address", value: patient?.address, icon: MapPin },
+  ];
+
+  const filledCount = completionFields.filter(f => !!f.value).length;
+  const totalCount = completionFields.length;
+  const percentage = Math.round((filledCount / totalCount) * 100);
+  const missingFields = completionFields.filter(f => !f.value);
+  const isComplete = filledCount === totalCount;
+
+  const progressColor =
+    percentage === 100 ? "bg-green-500" :
+    percentage >= 60 ? "bg-amber-400" :
+    "bg-red-500";
+
+  const progressTextColor =
+    percentage === 100 ? "text-green-700" :
+    percentage >= 60 ? "text-amber-700" :
+    "text-red-700";
+
+  const progressBgColor =
+    percentage === 100 ? "bg-green-50 border-green-200" :
+    percentage >= 60 ? "bg-amber-50 border-amber-200" :
+    "bg-red-50 border-red-200";
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -99,17 +134,93 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0">
-              {initials}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0">
+                {initials}
+              </div>
+              {!isLoading && (
+                <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${isComplete ? "bg-green-500" : "bg-red-500"}`}>
+                  {isComplete
+                    ? <Check className="w-3 h-3 text-white" />
+                    : <CircleAlert className="w-3 h-3 text-white" />
+                  }
+                </div>
+              )}
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-xl font-bold">{user?.name}</h2>
               <p className="text-muted-foreground text-sm">{user?.email}</p>
               <Badge className="mt-1" variant="secondary">Patient</Badge>
             </div>
+            {!isLoading && !isComplete && (
+              <Button size="sm" className="gap-2 shrink-0" onClick={startEdit}>
+                <Pencil className="w-3.5 h-3.5" />
+                Complete Profile
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Profile Completion Card */}
+      {!isLoading && (
+        <Card className={`border ${progressBgColor}`}>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {isComplete
+                  ? <CircleCheck className="w-5 h-5 text-green-600" />
+                  : <CircleAlert className="w-5 h-5 text-red-500" />
+                }
+                <span className={`text-sm font-semibold ${progressTextColor}`}>
+                  {isComplete ? "Profile Complete!" : "Profile Incomplete"}
+                </span>
+              </div>
+              <span className={`text-2xl font-bold ${progressTextColor}`}>{percentage}%</span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full bg-black/10 rounded-full h-2.5 mb-4">
+              <div
+                className={`h-2.5 rounded-full transition-all duration-500 ${progressColor}`}
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+
+            {isComplete ? (
+              <p className="text-sm text-green-700">
+                All your information is filled in. Your profile is fully visible to your doctors.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                <p className="text-sm text-muted-foreground">
+                  {filledCount} of {totalCount} fields complete. Missing:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {missingFields.map(field => (
+                    <button
+                      key={field.key}
+                      onClick={startEdit}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-red-300 bg-white text-red-700 hover:bg-red-50 transition-colors"
+                    >
+                      <field.icon className="w-3 h-3" />
+                      {field.label}
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Click any missing field above or use the <strong>Edit</strong> button in Medical Information to complete your profile.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && (
+        <Skeleton className="h-28 w-full rounded-xl" />
+      )}
 
       {/* Account info */}
       <Card>
