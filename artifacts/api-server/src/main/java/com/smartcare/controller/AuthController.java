@@ -30,7 +30,11 @@ public class AuthController {
                         body.get("email"),
                         body.get("password"),
                         body.get("role"),
-                        body.get("phoneNumber")
+                        body.get("phoneNumber"),
+                        body.get("gender"),
+                        body.get("dateOfBirth"),
+                        body.get("bloodType"),
+                        body.get("address")
                 )
         );
     }
