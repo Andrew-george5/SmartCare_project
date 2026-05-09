@@ -184,7 +184,11 @@ export default function Layout({ children }: LayoutProps) {
                   </span>
                 )}
                 {isAppointments && hasPendingAppointments && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 animate-pulse" title="Pending appointments awaiting response" />
+                  <span className={`text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none ${
+                    active ? "bg-white/20 text-white" : "bg-red-500 text-white"
+                  }`}>
+                    {(pendingAppointments ?? []).length > 99 ? "99+" : (pendingAppointments ?? []).length}
+                  </span>
                 )}
                 {isProfile && isProfileIncomplete && (
                   <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" title="Profile incomplete" />
