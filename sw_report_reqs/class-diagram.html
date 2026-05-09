@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartCare HMS — Class Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f172a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      margin-top: 8px;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+    .badge-blue   { background: #1e3a5f; color: #60a5fa; }
+    .badge-green  { background: #14532d; color: #4ade80; }
+    .badge-purple { background: #3b1d6e; color: #c084fc; }
+    .badge-amber  { background: #451a03; color: #fbbf24; }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #cbd5e1;
+      font-size: 0.82rem;
+    }
+
+    .legend-line {
+      width: 36px;
+      height: 2px;
+    }
+    .solid   { background: #64748b; }
+    .dashed  { background: transparent; border-bottom: 2px dashed #64748b; }
+
+    .diagram-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 1400px;
+      overflow-x: auto;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Mermaid theming overrides */
+    .mermaid svg {
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>SmartCare HMS — Class Diagram</h1>
+  <p>Domain model · Spring Boot 3.1.5 · JPA Entities &amp; Enumerations</p>
+  <div class="badge-row">
+    <span class="badge badge-blue">13 Entities</span>
+    <span class="badge badge-green">6 Enumerations</span>
+    <span class="badge badge-purple">Helwan University · Team 2</span>
+    <span class="badge badge-amber">Java 19 · PostgreSQL</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-line solid"></div> Association / Navigation</div>
+  <div class="legend-item"><div class="legend-line dashed"></div> Dependency (enum usage)</div>
+  <div class="legend-item"><span style="color:#60a5fa;font-weight:700">1</span>&nbsp;to&nbsp;<span style="color:#60a5fa;font-weight:700">*</span> &nbsp; One-to-Many</div>
+  <div class="legend-item"><span style="color:#4ade80;font-weight:700">1</span>&nbsp;to&nbsp;<span style="color:#4ade80;font-weight:700">1</span> &nbsp; One-to-One</div>
+</div>
+
+<div class="diagram-card">
+  <div class="mermaid">
+classDiagram
+    direction TB
+
+    %% ── CORE USER ─────────────────────────────────────────────
+    class AppUser {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer userId
+        +String name
+        +String email
+        +String password
+        +RoleEnum role
+        +String phoneNumber
+        +Boolean isActive
+        +LocalDateTime createdAt
+    }
+
+    %% ── PROFILES ───────────────────────────────────────────────
+    class Doctor {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer doctorId
+        +AppUser user
+        +String specialty
+        +String licenseNumber
+    }
+
+    class Patient {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer patientId
+        +AppUser user
+        +LocalDate dateOfBirth
+        +String gender
+        +String address
+        +String bloodType
+    }
+
+    %% ── SCHEDULING ─────────────────────────────────────────────
+    class Clinic {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer clinicId
+        +String type
+    }
+
+    class ClinicReservation {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer reservationId
+        +Clinic clinic
+        +Doctor doctor
+        +String day
+        +String startHour
+        +String endHour
+        +Integer maxPatients
+    }
+
+    class Appointment {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer appointmentId
+        +Patient patient
+        +Doctor doctor
+        +LocalDateTime dateTime
+        +AppointmentStatus status
+        +String notes
+        +LocalDateTime createdAt
+    }
+
+    %% ── CLINICAL ───────────────────────────────────────────────
+    class MedicalRecord {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer recordId
+        +Patient patient
+        +Doctor doctor
+        +Appointment appointment
+        +LocalDate visitDate
+        +String diagnosis
+        +String notes
+        +String attachedDocumentUrl
+    }
+
+    class Prescription {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer prescriptionId
+        +MedicalRecord record
+        +LocalDate issueDate
+        +List~PrescriptionDetail~ details
+    }
+
+    class PrescriptionDetail {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer detailId
+        +Prescription prescription
+        +Drug drug
+        +String dosage
+        +String frequency
+        +String duration
+    }
+
+    class Drug {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer drugId
+        +String drugName
+        +List~String~ activeIngredients
+    }
+
+    %% ── BILLING ────────────────────────────────────────────────
+    class Invoice {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer invoiceId
+        +Appointment appointment
+        +LocalDate issueDate
+        +BigDecimal totalAmount
+        +InvoiceStatus status
+        +LocalDateTime createdAt
+    }
+
+    class Payment {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer paymentId
+        +Invoice invoice
+        +LocalDateTime paymentDate
+        +BigDecimal amount
+        +PaymentMethod method
+        +String receiptPdfUrl
+        +LocalDateTime createdAt
+    }
+
+    %% ── NOTIFICATIONS ──────────────────────────────────────────
+    class Notification {
+        &lt;&lt;Entity&gt;&gt;
+        +Integer notificationId
+        +AppUser user
+        +NotificationType type
+        +NotificationChannel channel
+        +String message
+        +Boolean isRead
+        +LocalDateTime sentAt
+    }
+
+    %% ── ENUMERATIONS ───────────────────────────────────────────
+    class RoleEnum {
+        &lt;&lt;enumeration&gt;&gt;
+        ADMIN
+        DOCTOR
+        PATIENT
+    }
+
+    class AppointmentStatus {
+        &lt;&lt;enumeration&gt;&gt;
+        PENDING
+        CONFIRMED
+        CANCELLED
+        COMPLETED
+    }
+
+    class InvoiceStatus {
+        &lt;&lt;enumeration&gt;&gt;
+        PENDING
+        PAID
+        REFUNDED
+    }
+
+    class PaymentMethod {
+        &lt;&lt;enumeration&gt;&gt;
+        CARD
+        DIGITAL_WALLET
+        CASH
+    }
+
+    class NotificationType {
+        &lt;&lt;enumeration&gt;&gt;
+        APPOINTMENT
+        PRESCRIPTION
+        BILLING
+        SYSTEM_ERROR
+    }
+
+    class NotificationChannel {
+        &lt;&lt;enumeration&gt;&gt;
+        EMAIL
+        IN_APP
+    }
+
+    %% ── RELATIONSHIPS — ASSOCIATIONS ───────────────────────────
+    Doctor        "1"    -->   "1"    AppUser        : user\n@OneToOne
+    Patient       "1"    -->   "1"    AppUser        : user\n@OneToOne
+    Notification  "*"    -->   "1"    AppUser        : user\n@ManyToOne
+
+    Appointment   "*"    -->   "1"    Patient        : patient\n@ManyToOne
+    Appointment   "*"    -->   "1"    Doctor         : doctor\n@ManyToOne
+
+    ClinicReservation "*" --> "1"    Clinic          : clinic\n@ManyToOne
+    ClinicReservation "*" --> "1"    Doctor          : doctor\n@ManyToOne
+
+    MedicalRecord "*"    -->   "1"    Patient        : patient\n@ManyToOne
+    MedicalRecord "*"    -->   "1"    Doctor         : doctor\n@ManyToOne
+    MedicalRecord "*"    -->   "0..1" Appointment    : appointment\n@ManyToOne
+
+    Prescription  "*"    -->   "1"    MedicalRecord  : record\n@ManyToOne
+    Prescription  "1"    -->   "*"    PrescriptionDetail : details\n@OneToMany
+
+    PrescriptionDetail "*" -->  "1"   Drug           : drug\n@ManyToOne
+
+    Invoice       "1"    -->   "1"    Appointment    : appointment\n@OneToOne unique
+    Payment       "*"    -->   "1"    Invoice        : invoice\n@ManyToOne
+
+    %% ── RELATIONSHIPS — ENUM DEPENDENCIES ─────────────────────
+    AppUser       ..>           RoleEnum            : role
+    Appointment   ..>           AppointmentStatus   : status
+    Invoice       ..>           InvoiceStatus       : status
+    Payment       ..>           PaymentMethod       : method
+    Notification  ..>           NotificationType    : type
+    Notification  ..>           NotificationChannel : channel
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background:        '#1e293b',
+      primaryColor:      '#1e40af',
+      primaryTextColor:  '#e2e8f0',
+      primaryBorderColor:'#3b82f6',
+      secondaryColor:    '#1e3a5f',
+      tertiaryColor:     '#0f172a',
+      lineColor:         '#64748b',
+      textColor:         '#e2e8f0',
+      edgeLabelBackground:'#1e293b',
+      fontSize:          '14px',
+      classBorder:       '2px',
+    },
+    classDiagram: {
+      useMaxWidth: true,
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+services:
+  db:
+    image: postgres:14
+    container_name: smartcare_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smartcare}
+      POSTGRES_USER: ${POSTGRES_USER:-smartcare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartcare123}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - smartcare_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smartcare} -d ${POSTGRES_DB:-smartcare}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./artifacts/api-server
+      dockerfile: Dockerfile
+    container_name: smartcare_backend
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-smartcare}
+      PGUSER: ${POSTGRES_USER:-smartcare}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-smartcare123}
+      JWT_SECRET: ${JWT_SECRET:-smartcare-super-secret-jwt-key-2026-helwan-university}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - smartcare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/healthz || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: artifacts/smartcare/Dockerfile
+    container_name: smartcare_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - smartcare_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: smartcare_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@smartcare.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - smartcare_network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  smartcare_network:
+    driver: bridge

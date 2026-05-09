@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+**/.git
+**/.gitignore
+**/target
+**/*.log
+.env
+zipFile.zip
+attached_assets
+artifacts/mockup-sandbox
+sw_report_reqs
