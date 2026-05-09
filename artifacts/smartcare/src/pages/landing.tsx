@@ -66,9 +66,24 @@ export default function LandingPage() {
   ];
 
   const roles = [
-    { icon: <Users className="w-5 h-5" />, title: "For Administrators", description: "Full system control, user management, analytics, and billing oversight" },
-    { icon: <Stethoscope className="w-5 h-5" />, title: "For Doctors", description: "Schedule management, patient records access, and prescription issuance" },
-    { icon: <Heart className="w-5 h-5" />, title: "For Patients", description: "Easy appointment booking, medical history access, and secure payments" },
+    {
+      icon: <Users className="w-5 h-5" />,
+      title: "For Administrators",
+      description:
+        "Full system control, user management, analytics, and billing oversight",
+    },
+    {
+      icon: <Stethoscope className="w-5 h-5" />,
+      title: "For Doctors",
+      description:
+        "Schedule management, patient records access, and prescription issuance",
+    },
+    {
+      icon: <Heart className="w-5 h-5" />,
+      title: "For Patients",
+      description:
+        "Easy appointment booking, medical history access, and secure payments",
+    },
   ];
 
   const stats = [
@@ -89,16 +104,22 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#0d9488] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#0b87c1] flex items-center justify-center">
               <Heart className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-gray-900 text-lg">SmartCare</span>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => setLocation("/login")} className="text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium">
+            <button
+              onClick={() => setLocation("/login")}
+              className="text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium"
+            >
               Login
             </button>
-            <button onClick={() => setLocation("/signup")} className="text-sm bg-[#0d9488] hover:bg-[#0f766e] text-white font-medium px-4 py-2 rounded-lg transition-colors">
+            <button
+              onClick={() => setLocation("/signup")}
+              className="text-sm bg-[#0b87c1] hover:bg-[#0969e0] text-white font-medium px-4 py-2 rounded-lg transition-colors"
+            >
               Sign Up
             </button>
           </div>
@@ -108,23 +129,30 @@ export default function LandingPage() {
       <section className="bg-gray-50 pt-24 pb-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 text-sm text-gray-600 mb-8 shadow-sm">
-            <Activity className="w-4 h-4 text-[#0d9488]" />
+            <Activity className="w-4 h-4 text-[#0b87c1]" />
             Trusted by 500+ Healthcare Providers
           </div>
           <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
             Healthcare Management
             <br />
-            Made <span className="text-[#0d9488]">Simple</span>
+            Made <span className="text-[#0b87c1]">Simple</span>
           </h1>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-10">
-            SmartCare is a comprehensive web-based platform designed to streamline healthcare operations.
-            Manage appointments, medical records, prescriptions, and billing all in one place.
+            SmartCare is a comprehensive web-based platform designed to
+            streamline healthcare operations. Manage appointments, medical
+            records, prescriptions, and billing all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => setLocation("/signup")} className="inline-flex items-center gap-2 bg-[#0d9488] hover:bg-[#0f766e] text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+            <button
+              onClick={() => setLocation("/signup")}
+              className="inline-flex items-center gap-2 bg-[#0b87c1] hover:bg-[#0969e0] text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
               Create Account <ChevronRight className="w-4 h-4" />
             </button>
-            <button onClick={() => setLocation("/login")} className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setLocation("/login")}
+              className="group flex items-center gap-2 border border-[#0b87c1]/20 hover:border-[#0b87c1]/40 hover:bg-[#0b87c1]/5 transition-all duration-300 text-[#0b87c1] px-8 py-4 rounded-2xl font-semibold"
+            >
               Sign In
             </button>
           </div>
@@ -135,7 +163,9 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((s) => (
             <div key={s.label}>
-              <p className="text-4xl font-extrabold text-[#0d9488]">{s.value}</p>
+              <p className="text-4xl font-extrabold text-[#0b87c1]">
+                {s.value}
+              </p>
               <p className="text-sm text-gray-500 mt-1">{s.label}</p>
             </div>
           ))}
@@ -145,20 +175,36 @@ export default function LandingPage() {
       <section id="features" className="bg-gray-50 py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold text-gray-900">Everything You Need to Manage<br />Healthcare</h2>
+            <h2 className="text-4xl font-extrabold text-gray-900">
+              Everything You Need to Manage
+              <br />
+              Healthcare
+            </h2>
             <p className="text-gray-500 mt-4 max-w-xl mx-auto">
-              A complete suite of tools built for modern hospitals and clinics, from day-one patient intake to long-term record keeping.
+              A complete suite of tools built for modern hospitals and clinics,
+              from day-one patient intake to long-term record keeping.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {features.map((f) => (
-              <div key={f.title} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
-                <div className="w-11 h-11 rounded-xl bg-[#ccfbf1] flex items-center justify-center text-[#0d9488]">{f.icon}</div>
+              <div
+                key={f.title}
+                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4"
+              >
+                <div className="w-11 h-11 rounded-xl bg-[#ccfbf1] flex items-center justify-center text-[#0b87c1]">
+                  {f.icon}
+                </div>
                 <div>
                   <h3 className="font-bold text-gray-900 text-lg">{f.title}</h3>
                   <p className="text-sm text-gray-500 mt-1">{f.description}</p>
                 </div>
-                {f.image && <img src={f.image} alt={f.title} className="rounded-xl w-full h-44 object-cover mt-2" />}
+                {f.image && (
+                  <img
+                    src={f.image}
+                    alt={f.title}
+                    className="rounded-xl w-full h-44 object-cover mt-2"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -168,12 +214,19 @@ export default function LandingPage() {
       <section id="services" className="bg-white py-20 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1">
-            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Tailored Solutions for Every Role</h2>
-            <p className="text-gray-500 mb-8">SmartCare provides dedicated dashboards and features for each user type, ensuring everyone has the tools they need.</p>
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">
+              Tailored Solutions for Every Role
+            </h2>
+            <p className="text-gray-500 mb-8">
+              SmartCare provides dedicated dashboards and features for each user
+              type, ensuring everyone has the tools they need.
+            </p>
             <div className="flex flex-col gap-5">
               {roles.map((r) => (
                 <div key={r.title} className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#0d9488] flex items-center justify-center text-white shrink-0">{r.icon}</div>
+                  <div className="w-10 h-10 rounded-xl bg-[#0b87c1] flex items-center justify-center text-white shrink-0">
+                    {r.icon}
+                  </div>
                   <div>
                     <p className="font-bold text-gray-900">{r.title}</p>
                     <p className="text-sm text-gray-500">{r.description}</p>
@@ -183,7 +236,11 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex-1">
-            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&q=80" alt="Healthcare team" className="rounded-2xl w-full h-96 object-cover shadow-lg" />
+            <img
+              src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&q=80"
+              alt="Healthcare team"
+              className="rounded-2xl w-full h-96 object-cover shadow-lg"
+            />
           </div>
         </div>
       </section>
@@ -191,13 +248,21 @@ export default function LandingPage() {
       <section className="bg-gray-50 py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <div className="w-16 h-16 rounded-full bg-[#ccfbf1] flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-8 h-8 text-[#0d9488]" />
+            <Shield className="w-8 h-8 text-[#0b87c1]" />
           </div>
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Security &amp; Compliance First</h2>
-          <p className="text-gray-500 mb-10">Your data is protected with enterprise-grade security measures and full compliance with healthcare regulations.</p>
+          <h2 className="text-4xl font-extrabold text-gray-900 mb-4">
+            Security &amp; Compliance First
+          </h2>
+          <p className="text-gray-500 mb-10">
+            Your data is protected with enterprise-grade security measures and
+            full compliance with healthcare regulations.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {security.map((s) => (
-              <div key={s.title} className="bg-white rounded-xl border border-gray-100 p-6 text-center shadow-sm">
+              <div
+                key={s.title}
+                className="bg-white rounded-xl border border-gray-100 p-6 text-center shadow-sm"
+              >
                 <p className="font-bold text-gray-900">{s.title}</p>
                 <p className="text-sm text-gray-500 mt-1">{s.desc}</p>
               </div>

@@ -1,8 +1,12 @@
 import { useState } from "react";
 import {
-  useListClinics, useCreateClinic, useListClinicReservations,
-  useCreateClinicReservation, useListDoctors,
-  getListClinicsQueryKey, getListClinicReservationsQueryKey
+  useListClinics,
+  useCreateClinic,
+  useListClinicReservations,
+  useCreateClinicReservation,
+  useListDoctors,
+  getListClinicsQueryKey,
+  getListClinicReservationsQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,23 +14,66 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Building2, Clock } from "lucide-react";
+import { set } from "react-hook-form";
 
-const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const DAYS = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+
+const SPECIALTIES = [
+  "Cardiology",
+  "Neurology",
+  "Orthopedics",
+  "Pediatrics",
+  "Dermatology",
+  "Oncology",
+  "Gynecology",
+  "Psychiatry",
+  "Radiology",
+  "General Surgery",
+  "Internal Medicine",
+  "Emergency Medicine",
+];
 
 export default function ClinicsPage() {
   const [showClinicDialog, setShowClinicDialog] = useState(false);
   const [showReservationDialog, setShowReservationDialog] = useState(false);
-  const [clinicForm, setClinicForm] = useState({ type: "" });
-  const [resForm, setResForm] = useState({ clinicId: "", doctorId: "", day: "MONDAY", startHour: "09:00", endHour: "13:00" });
+  const [clinicForm, setClinicForm] = useState("Cardiology");
+  const [resForm, setResForm] = useState({
+    clinicId: "",
+    doctorId: "",
+    day: "MONDAY",
+    startHour: "09:00",
+    endHour: "13:00",
+  });
   const qc = useQueryClient();
 
   const { data: clinics, isLoading: clinicsLoading } = useListClinics();
-  const { data: reservations, isLoading: resLoading } = useListClinicReservations({});
+  const { data: reservations, isLoading: resLoading } =
+    useListClinicReservations({});
   const { data: doctors } = useListDoctors({});
 
   const createClinicMutation = useCreateClinic({
@@ -34,9 +81,9 @@ export default function ClinicsPage() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListClinicsQueryKey() });
         setShowClinicDialog(false);
-        setClinicForm({ type: "" });
-      }
-    }
+        setClinicForm("");
+      },
+    },
   });
 
   const createResMutation = useCreateClinicReservation({
@@ -44,15 +91,17 @@ export default function ClinicsPage() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListClinicReservationsQueryKey() });
         setShowReservationDialog(false);
-      }
-    }
+      },
+    },
   });
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Clinics & Schedules</h1>
-        <p className="text-muted-foreground">Manage clinic rooms and doctor schedules</p>
+        <p className="text-muted-foreground">
+          Manage clinic rooms and doctor schedules
+        </p>
       </div>
 
       <Tabs defaultValue="clinics">
@@ -68,18 +117,32 @@ export default function ClinicsPage() {
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {clinicsLoading && Array(4).fill(0).map((_, i) => (
-              <Card key={i}><CardContent className="p-6"><Skeleton className="h-16" /></CardContent></Card>
-            ))}
+            {clinicsLoading &&
+              Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-6">
+                      <Skeleton className="h-16" />
+                    </CardContent>
+                  </Card>
+                ))}
             {!clinicsLoading && (clinics ?? []).length === 0 && (
-              <div className="col-span-4 text-center py-12 text-muted-foreground">No clinics found</div>
+              <div className="col-span-4 text-center py-12 text-muted-foreground">
+                No clinics found
+              </div>
             )}
             {(clinics ?? []).map((c: any) => (
-              <Card key={c.clinicId} className="hover:shadow-md transition-shadow">
+              <Card
+                key={c.clinicId}
+                className="hover:shadow-md transition-shadow"
+              >
                 <CardContent className="p-6 text-center">
                   <Building2 className="w-8 h-8 mx-auto mb-2 text-primary" />
                   <p className="font-semibold">{c.type}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Clinic #{c.clinicId}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Clinic #{c.clinicId}
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -88,7 +151,10 @@ export default function ClinicsPage() {
 
         <TabsContent value="reservations" className="space-y-4 mt-4">
           <div className="flex justify-end">
-            <Button onClick={() => setShowReservationDialog(true)} className="gap-2">
+            <Button
+              onClick={() => setShowReservationDialog(true)}
+              className="gap-2"
+            >
               <Plus className="w-4 h-4" /> Add Schedule
             </Button>
           </div>
@@ -105,17 +171,38 @@ export default function ClinicsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {resLoading && Array(3).fill(0).map((_, i) => (
-                      <tr key={i} className="border-b"><td colSpan={4} className="p-4"><Skeleton className="h-4 w-full" /></td></tr>
-                    ))}
+                    {resLoading &&
+                      Array(3)
+                        .fill(0)
+                        .map((_, i) => (
+                          <tr key={i} className="border-b">
+                            <td colSpan={4} className="p-4">
+                              <Skeleton className="h-4 w-full" />
+                            </td>
+                          </tr>
+                        ))}
                     {!resLoading && (reservations ?? []).length === 0 && (
-                      <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No schedules found</td></tr>
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="p-8 text-center text-muted-foreground"
+                        >
+                          No schedules found
+                        </td>
+                      </tr>
                     )}
                     {(reservations ?? []).map((r: any) => (
-                      <tr key={r.reservationId} className="border-b last:border-0 hover:bg-muted/30">
+                      <tr
+                        key={r.reservationId}
+                        className="border-b last:border-0 hover:bg-muted/30"
+                      >
                         <td className="p-4 font-medium">Dr. {r.doctorName}</td>
-                        <td className="p-4 text-muted-foreground">{r.clinicType} (#{r.clinicId})</td>
-                        <td className="p-4"><Badge variant="outline">{r.day}</Badge></td>
+                        <td className="p-4 text-muted-foreground">
+                          {r.clinicType} (#{r.clinicId})
+                        </td>
+                        <td className="p-4">
+                          <Badge variant="outline">{r.day}</Badge>
+                        </td>
                         <td className="p-4">
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="w-3 h-3" />
@@ -134,18 +221,37 @@ export default function ClinicsPage() {
 
       <Dialog open={showClinicDialog} onOpenChange={setShowClinicDialog}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Add Clinic</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add Clinic</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Clinic Type</Label>
-              <Input value={clinicForm.type} onChange={e => setClinicForm(f => ({ ...f, type: e.target.value }))} placeholder="e.g. Cardiology, General, ICU..." />
+              <select
+                value={clinicForm}
+                onChange={(e) => setClinicForm((f) => (f = e.target.value))}
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              >
+                {SPECIALTIES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClinicDialog(false)}>Cancel</Button>
             <Button
-              onClick={() => createClinicMutation.mutate({ data: { type: clinicForm.type } })}
-              disabled={createClinicMutation.isPending || !clinicForm.type}
+              variant="outline"
+              onClick={() => setShowClinicDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                createClinicMutation.mutate({ data: { type: clinicForm } })
+              }
+              disabled={createClinicMutation.isPending || clinicForm === ""}
             >
               {createClinicMutation.isPending ? "Creating..." : "Create"}
             </Button>
@@ -153,61 +259,120 @@ export default function ClinicsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showReservationDialog} onOpenChange={setShowReservationDialog}>
+      <Dialog
+        open={showReservationDialog}
+        onOpenChange={setShowReservationDialog}
+      >
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Add Doctor Schedule</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add Doctor Schedule</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Doctor</Label>
-              <Select value={resForm.doctorId} onValueChange={v => setResForm(f => ({ ...f, doctorId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select doctor..." /></SelectTrigger>
+              <Select
+                value={resForm.doctorId}
+                onValueChange={(v) =>
+                  setResForm((f) => ({ ...f, doctorId: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor..." />
+                </SelectTrigger>
                 <SelectContent>
                   {(doctors ?? []).map((d: any) => (
-                    <SelectItem key={d.doctorId} value={String(d.doctorId)}>Dr. {d.name}</SelectItem>
+                    <SelectItem key={d.doctorId} value={String(d.doctorId)}>
+                      Dr. {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Clinic</Label>
-              <Select value={resForm.clinicId} onValueChange={v => setResForm(f => ({ ...f, clinicId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select clinic..." /></SelectTrigger>
+              <Select
+                value={resForm.clinicId}
+                onValueChange={(v) =>
+                  setResForm((f) => ({ ...f, clinicId: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select clinic..." />
+                </SelectTrigger>
                 <SelectContent>
                   {(clinics ?? []).map((c: any) => (
-                    <SelectItem key={c.clinicId} value={String(c.clinicId)}>{c.type} (#{c.clinicId})</SelectItem>
+                    <SelectItem key={c.clinicId} value={String(c.clinicId)}>
+                      {c.type} (#{c.clinicId})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Day</Label>
-              <Select value={resForm.day} onValueChange={v => setResForm(f => ({ ...f, day: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{DAYS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+              <Select
+                value={resForm.day}
+                onValueChange={(v) => setResForm((f) => ({ ...f, day: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DAYS.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Hour</Label>
-                <Input type="time" value={resForm.startHour} onChange={e => setResForm(f => ({ ...f, startHour: e.target.value }))} />
+                <Input
+                  type="time"
+                  value={resForm.startHour}
+                  onChange={(e) =>
+                    setResForm((f) => ({ ...f, startHour: e.target.value }))
+                  }
+                />
               </div>
               <div className="space-y-2">
                 <Label>End Hour</Label>
-                <Input type="time" value={resForm.endHour} onChange={e => setResForm(f => ({ ...f, endHour: e.target.value }))} />
+                <Input
+                  type="time"
+                  value={resForm.endHour}
+                  onChange={(e) =>
+                    setResForm((f) => ({ ...f, endHour: e.target.value }))
+                  }
+                />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReservationDialog(false)}>Cancel</Button>
             <Button
-              onClick={() => createResMutation.mutate({ data: {
-                clinicId: Number(resForm.clinicId),
-                doctorId: Number(resForm.doctorId),
-                day: resForm.day,
-                startHour: resForm.startHour,
-                endHour: resForm.endHour,
-              } })}
-              disabled={createResMutation.isPending || !resForm.clinicId || !resForm.doctorId}
+              variant="outline"
+              onClick={() => setShowReservationDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                createResMutation.mutate({
+                  data: {
+                    clinicId: Number(resForm.clinicId),
+                    doctorId: Number(resForm.doctorId),
+                    day: resForm.day,
+                    startHour: resForm.startHour,
+                    endHour: resForm.endHour,
+                  },
+                })
+              }
+              disabled={
+                createResMutation.isPending ||
+                !resForm.clinicId ||
+                !resForm.doctorId
+              }
             >
               {createResMutation.isPending ? "Saving..." : "Save Schedule"}
             </Button>
