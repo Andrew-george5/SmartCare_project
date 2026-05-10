@@ -22,7 +22,13 @@ export default function LoginPage() {
         setLocation("/dashboard");
       },
       onError: (err: any) => {
-        setError(err?.data?.error || "Invalid credentials. Please try again.");
+        const msg =
+          err?.data?.error ||
+          err?.data?.message ||
+          (typeof err?.data === "string" && err.data) ||
+          err?.message ||
+          "Invalid credentials. Please try again.";
+        setError(msg);
       },
     },
   });

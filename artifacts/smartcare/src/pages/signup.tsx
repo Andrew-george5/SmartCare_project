@@ -36,7 +36,13 @@ export default function SignupPage() {
         setLocation("/dashboard");
       },
       onError: (err: any) => {
-        setError(err?.data?.error || "Failed to create account.");
+        const msg =
+          err?.data?.error ||
+          err?.data?.message ||
+          (typeof err?.data === "string" && err.data) ||
+          err?.message ||
+          "Failed to create account.";
+        setError(msg);
       },
     },
   });
