@@ -109,9 +109,9 @@ export default function PatientsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[560px]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="border-b bg-muted/30">
                   <th className="text-left p-4 font-medium">Name</th>
                   <th className="text-left p-4 font-medium">Email</th>

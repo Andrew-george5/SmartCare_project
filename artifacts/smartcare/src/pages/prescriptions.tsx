@@ -309,7 +309,7 @@ export default function PrescriptionsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select a medical record…" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-52 overflow-y-auto">
                       {recordsWithoutPrescription.map((r: any) => (
                         <SelectItem key={r.recordId} value={String(r.recordId)}>
                           #{r.recordId} — {r.patientName}
@@ -445,7 +445,7 @@ export default function PrescriptionsPage() {
                               }
                             />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-52 overflow-y-auto">
                             {drugs.map((d: any) => (
                               <SelectItem key={d.drugId} value={String(d.drugId)}>
                                 {d.drugName}

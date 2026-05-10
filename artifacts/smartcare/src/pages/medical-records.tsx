@@ -307,7 +307,7 @@ function StaffMedicalRecords() {
         <div className="w-64">
           <Select value={selectedPatient} onValueChange={setSelectedPatient}>
             <SelectTrigger><SelectValue placeholder="Filter by patient..." /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-52 overflow-y-auto">
               <SelectItem value="all">All Patients</SelectItem>
               {(patients ?? []).map((p: any) => (
                 <SelectItem key={p.patientId} value={String(p.patientId)}>{p.name}</SelectItem>
@@ -379,7 +379,7 @@ function StaffMedicalRecords() {
                   <Label>Appointment <span className="text-destructive">*</span></Label>
                   <Select value={form.appointmentId} onValueChange={handleAppointmentSelect}>
                     <SelectTrigger><SelectValue placeholder="Select appointment..." /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-52 overflow-y-auto">
                       {availableAppointments.map((a: any) => (
                         <SelectItem key={a.appointmentId} value={String(a.appointmentId)}>
                           #{a.appointmentId} — {a.patientName} ({new Date(a.dateTime).toLocaleDateString()})
