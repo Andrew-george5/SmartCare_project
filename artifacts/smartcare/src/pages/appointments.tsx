@@ -28,6 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -40,6 +42,8 @@ import {
   Stethoscope,
   StickyNote,
   Search,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -116,6 +120,7 @@ export default function AppointmentsPage() {
   const [adminNotes, setAdminNotes] = useState("");
   // Doctor notes viewer
   const [viewingAppointment, setViewingAppointment] = useState<any>(null);
+  const [openDoctorCombo, setOpenDoctorCombo] = useState(false);
 
   const qc = useQueryClient();
 
@@ -587,21 +592,38 @@ export default function AppointmentsPage() {
                   <Label>
                     Doctor <span className="text-destructive">*</span>
                   </Label>
-                  <Select
-                    value={selectedDoctorId}
-                    onValueChange={setSelectedDoctorId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a doctor..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-52 overflow-y-auto">
-                      {(doctors ?? []).map((d: any) => (
-                        <SelectItem key={d.doctorId} value={String(d.doctorId)}>
-                          Dr. {d.name} — {d.specialty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openDoctorCombo} onOpenChange={setOpenDoctorCombo}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                        <span className="truncate">
+                          {selectedDoctorId
+                            ? (() => { const d = (doctors ?? []).find((d: any) => String(d.doctorId) === selectedDoctorId); return d ? `Dr. ${d.name} — ${d.specialty}` : "Select a doctor..."; })()
+                            : "Select a doctor..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search by name or specialty…" />
+                        <CommandList>
+                          <CommandEmpty>No doctors found.</CommandEmpty>
+                          <CommandGroup>
+                            {(doctors ?? []).map((d: any) => (
+                              <CommandItem
+                                key={d.doctorId}
+                                value={`${d.name} ${d.specialty}`}
+                                onSelect={() => { setSelectedDoctorId(String(d.doctorId)); setOpenDoctorCombo(false); }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${selectedDoctorId === String(d.doctorId) ? "opacity-100" : "opacity-0"}`} />
+                                Dr. {d.name} — {d.specialty}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Step 2: Available Time Slots */}

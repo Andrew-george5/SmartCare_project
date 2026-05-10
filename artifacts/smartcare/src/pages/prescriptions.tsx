@@ -39,6 +39,7 @@ export default function PrescriptionsPage() {
   });
   // track which drug-row combobox is open (by index, or null for none)
   const [openDrugIdx, setOpenDrugIdx] = useState<number | null>(null);
+  const [openRecordCombo, setOpenRecordCombo] = useState(false);
 
   const qc = useQueryClient();
 
@@ -309,20 +310,39 @@ export default function PrescriptionsPage() {
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <Select value={selectedRecordId} onValueChange={setSelectedRecordId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a medical record…" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-52 overflow-y-auto">
-                      {recordsWithoutPrescription.map((r: any) => (
-                        <SelectItem key={r.recordId} value={String(r.recordId)}>
-                          #{r.recordId} — {r.patientName}
-                          {r.appointmentId ? ` (Appt #${r.appointmentId})` : ""} ·{" "}
-                          {r.visitDate}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openRecordCombo} onOpenChange={setOpenRecordCombo}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                        <span className="truncate">
+                          {selectedRecordId
+                            ? (() => { const r = recordsWithoutPrescription.find((r: any) => String(r.recordId) === selectedRecordId); return r ? `#${r.recordId} — ${r.patientName}` : "Select a medical record…"; })()
+                            : "Select a medical record…"}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search by patient or record…" />
+                        <CommandList>
+                          <CommandEmpty>No records found.</CommandEmpty>
+                          <CommandGroup>
+                            {recordsWithoutPrescription.map((r: any) => (
+                              <CommandItem
+                                key={r.recordId}
+                                value={`${r.patientName} ${r.recordId} ${r.visitDate}`}
+                                onSelect={() => { setSelectedRecordId(String(r.recordId)); setOpenRecordCombo(false); }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${selectedRecordId === String(r.recordId) ? "opacity-100" : "opacity-0"}`} />
+                                #{r.recordId} — {r.patientName}
+                                {r.appointmentId ? ` (Appt #${r.appointmentId})` : ""} · {r.visitDate}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Only medical records without an existing prescription are shown.

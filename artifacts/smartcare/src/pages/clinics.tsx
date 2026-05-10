@@ -28,9 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Building2, Clock } from "lucide-react";
+import { Plus, Building2, Clock, ChevronsUpDown, Check } from "lucide-react";
 import { set } from "react-hook-form";
 
 const DAYS = [
@@ -69,6 +71,8 @@ export default function ClinicsPage() {
     startHour: "09:00",
     endHour: "13:00",
   });
+  const [openDoctorCombo, setOpenDoctorCombo] = useState(false);
+  const [openClinicCombo, setOpenClinicCombo] = useState(false);
   const qc = useQueryClient();
 
   const { data: clinics, isLoading: clinicsLoading } = useListClinics();
@@ -270,43 +274,73 @@ export default function ClinicsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Doctor</Label>
-              <Select
-                value={resForm.doctorId}
-                onValueChange={(v) =>
-                  setResForm((f) => ({ ...f, doctorId: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select doctor..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(doctors ?? []).map((d: any) => (
-                    <SelectItem key={d.doctorId} value={String(d.doctorId)}>
-                      Dr. {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openDoctorCombo} onOpenChange={setOpenDoctorCombo}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className="truncate">
+                      {resForm.doctorId
+                        ? (() => { const d = (doctors ?? []).find((d: any) => String(d.doctorId) === resForm.doctorId); return d ? `Dr. ${d.name}` : "Select doctor..."; })()
+                        : "Select doctor..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search doctor…" />
+                    <CommandList>
+                      <CommandEmpty>No doctors found.</CommandEmpty>
+                      <CommandGroup>
+                        {(doctors ?? []).map((d: any) => (
+                          <CommandItem
+                            key={d.doctorId}
+                            value={d.name}
+                            onSelect={() => { setResForm((f) => ({ ...f, doctorId: String(d.doctorId) })); setOpenDoctorCombo(false); }}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${resForm.doctorId === String(d.doctorId) ? "opacity-100" : "opacity-0"}`} />
+                            Dr. {d.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Clinic</Label>
-              <Select
-                value={resForm.clinicId}
-                onValueChange={(v) =>
-                  setResForm((f) => ({ ...f, clinicId: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select clinic..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(clinics ?? []).map((c: any) => (
-                    <SelectItem key={c.clinicId} value={String(c.clinicId)}>
-                      {c.type} (#{c.clinicId})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openClinicCombo} onOpenChange={setOpenClinicCombo}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className="truncate">
+                      {resForm.clinicId
+                        ? (() => { const c = (clinics ?? []).find((c: any) => String(c.clinicId) === resForm.clinicId); return c ? `${c.type} (#${c.clinicId})` : "Select clinic..."; })()
+                        : "Select clinic..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search clinic…" />
+                    <CommandList>
+                      <CommandEmpty>No clinics found.</CommandEmpty>
+                      <CommandGroup>
+                        {(clinics ?? []).map((c: any) => (
+                          <CommandItem
+                            key={c.clinicId}
+                            value={`${c.type} ${c.clinicId}`}
+                            onSelect={() => { setResForm((f) => ({ ...f, clinicId: String(c.clinicId) })); setOpenClinicCombo(false); }}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${resForm.clinicId === String(c.clinicId) ? "opacity-100" : "opacity-0"}`} />
+                            {c.type} (#{c.clinicId})
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Day</Label>

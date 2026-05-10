@@ -13,9 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, FileText, Stethoscope, CalendarDays, ClipboardList, StickyNote, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, FileText, Stethoscope, CalendarDays, ClipboardList, StickyNote, ChevronDown, ChevronUp, ChevronsUpDown, Check } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 /* ─────────────────────────────────────────
@@ -208,6 +210,8 @@ function StaffMedicalRecords() {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [selectedPatient, setSelectedPatient] = useState("all");
   const [form, setForm] = useState({ patientId: "", appointmentId: "", visitDate: "", diagnosis: "", notes: "" });
+  const [openPatientCombo, setOpenPatientCombo] = useState(false);
+  const [openApptCombo, setOpenApptCombo] = useState(false);
   const qc = useQueryClient();
 
   const { data: doctorMe } = useGetDoctorMe({ query: { queryKey: ["doctors", "me"], enabled: isDoctor } });
@@ -305,15 +309,42 @@ function StaffMedicalRecords() {
 
       <div className="flex gap-3">
         <div className="w-64">
-          <Select value={selectedPatient} onValueChange={setSelectedPatient}>
-            <SelectTrigger><SelectValue placeholder="Filter by patient..." /></SelectTrigger>
-            <SelectContent className="max-h-52 overflow-y-auto">
-              <SelectItem value="all">All Patients</SelectItem>
-              {(patients ?? []).map((p: any) => (
-                <SelectItem key={p.patientId} value={String(p.patientId)}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={openPatientCombo} onOpenChange={setOpenPatientCombo}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                <span className="truncate">
+                  {selectedPatient === "all"
+                    ? "All Patients"
+                    : (patients ?? []).find((p: any) => String(p.patientId) === selectedPatient)?.name ?? "Filter by patient..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+              <Command>
+                <CommandInput placeholder="Search patient…" />
+                <CommandList>
+                  <CommandEmpty>No patients found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem value="all" onSelect={() => { setSelectedPatient("all"); setOpenPatientCombo(false); }}>
+                      <Check className={`mr-2 h-4 w-4 ${selectedPatient === "all" ? "opacity-100" : "opacity-0"}`} />
+                      All Patients
+                    </CommandItem>
+                    {(patients ?? []).map((p: any) => (
+                      <CommandItem
+                        key={p.patientId}
+                        value={p.name}
+                        onSelect={() => { setSelectedPatient(String(p.patientId)); setOpenPatientCombo(false); }}
+                      >
+                        <Check className={`mr-2 h-4 w-4 ${selectedPatient === String(p.patientId) ? "opacity-100" : "opacity-0"}`} />
+                        {p.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -377,16 +408,38 @@ function StaffMedicalRecords() {
               {!editingRecord && (
                 <div className="space-y-2">
                   <Label>Appointment <span className="text-destructive">*</span></Label>
-                  <Select value={form.appointmentId} onValueChange={handleAppointmentSelect}>
-                    <SelectTrigger><SelectValue placeholder="Select appointment..." /></SelectTrigger>
-                    <SelectContent className="max-h-52 overflow-y-auto">
-                      {availableAppointments.map((a: any) => (
-                        <SelectItem key={a.appointmentId} value={String(a.appointmentId)}>
-                          #{a.appointmentId} — {a.patientName} ({new Date(a.dateTime).toLocaleDateString()})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openApptCombo} onOpenChange={setOpenApptCombo}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                        <span className="truncate">
+                          {form.appointmentId
+                            ? (() => { const a = availableAppointments.find((a: any) => String(a.appointmentId) === form.appointmentId); return a ? `#${a.appointmentId} — ${a.patientName}` : "Select appointment..."; })()
+                            : "Select appointment..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search by patient or date…" />
+                        <CommandList>
+                          <CommandEmpty>No appointments found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableAppointments.map((a: any) => (
+                              <CommandItem
+                                key={a.appointmentId}
+                                value={`${a.patientName} ${a.appointmentId} ${a.dateTime}`}
+                                onSelect={() => { handleAppointmentSelect(String(a.appointmentId)); setOpenApptCombo(false); }}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${form.appointmentId === String(a.appointmentId) ? "opacity-100" : "opacity-0"}`} />
+                                #{a.appointmentId} — {a.patientName} ({new Date(a.dateTime).toLocaleDateString()})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
               <div className="space-y-2">
