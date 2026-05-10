@@ -16,8 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pill, Trash2, Info, CheckCircle2, TrendingUp, Building2 } from "lucide-react";
+import { Plus, Pill, Trash2, Info, CheckCircle2, TrendingUp, Building2, ChevronsUpDown, Check } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,6 +37,8 @@ export default function PrescriptionsPage() {
     consultationFee: "",
     drugs: [{ drugId: "", dosage: "", frequency: "", duration: "" }],
   });
+  // track which drug-row combobox is open (by index, or null for none)
+  const [openDrugIdx, setOpenDrugIdx] = useState<number | null>(null);
 
   const qc = useQueryClient();
 
@@ -434,25 +438,50 @@ export default function PrescriptionsPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs">Drug Name</Label>
-                        <Select
-                          value={drug.drugId}
-                          onValueChange={(v) => updateDrug(i, "drugId", v)}
+                        <Popover
+                          open={openDrugIdx === i}
+                          onOpenChange={(open) => setOpenDrugIdx(open ? i : null)}
                         >
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                drugs.length === 0 ? "No drugs in system" : "Select drug…"
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-52 overflow-y-auto">
-                            {drugs.map((d: any) => (
-                              <SelectItem key={d.drugId} value={String(d.drugId)}>
-                                {d.drugName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between font-normal h-9 text-sm"
+                            >
+                              <span className="truncate">
+                                {drug.drugId
+                                  ? drugs.find((d: any) => String(d.drugId) === drug.drugId)?.drugName
+                                  : drugs.length === 0 ? "No drugs in system" : "Select drug…"}
+                              </span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search drug…" />
+                              <CommandList>
+                                <CommandEmpty>No drug found.</CommandEmpty>
+                                <CommandGroup>
+                                  {drugs.map((d: any) => (
+                                    <CommandItem
+                                      key={d.drugId}
+                                      value={d.drugName}
+                                      onSelect={() => {
+                                        updateDrug(i, "drugId", String(d.drugId));
+                                        setOpenDrugIdx(null);
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${drug.drugId === String(d.drugId) ? "opacity-100" : "opacity-0"}`}
+                                      />
+                                      {d.drugName}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Dosage</Label>
