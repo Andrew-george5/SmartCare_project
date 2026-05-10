@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, DollarSign, TrendingUp, Receipt, Percent, CheckCircle } from "lucide-react";
+import { CreditCard, DollarSign, TrendingUp, Receipt, Percent } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 
@@ -300,11 +300,11 @@ export default function BillingPage() {
                         {inv.status === "PENDING" && (
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-7 text-xs gap-1 text-green-600 hover:text-green-700"
+                            variant="default"
+                            className="h-7 text-xs"
                             onClick={() => handlePay(inv)}
                           >
-                            <CheckCircle className="w-3 h-3" /> Pay Now
+                            Pay Now
                           </Button>
                         )}
                       </td>
